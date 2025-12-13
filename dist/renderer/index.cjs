@@ -4,7 +4,7 @@ var previewApi = require('storybook/internal/preview-api');
 
 // src/renderer/render.ts
 
-// ../../node_modules/ts-dedent/esm/index.js
+// node_modules/ts-dedent/esm/index.js
 function dedent(templ) {
   var values = [];
   for (var _i = 1; _i < arguments.length; _i++) {
