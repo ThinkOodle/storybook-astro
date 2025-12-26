@@ -25,7 +25,7 @@ export interface FrameworkOptions {
  * Storybook builder options with Vite
  */
 export interface StorybookConfigFramework {
-  name: '@anthropic/storybook-astro';
+  name: 'storybook-astro';
   options: FrameworkOptions;
 }
 

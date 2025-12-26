@@ -14,7 +14,7 @@ const require = createRequire(import.meta.url);
 // This avoids issues with import.meta.url when bundled
 function getToolbarEntrypoint(): string {
   // Resolve the package.json to find the package root
-  const packageJsonPath = require.resolve('@anthropic/storybook-astro/package.json');
+  const packageJsonPath = require.resolve('storybook-astro/package.json');
   const packageRoot = dirname(packageJsonPath);
   return join(packageRoot, 'dist', 'integration', 'toolbar-app.js');
 }
@@ -40,7 +40,7 @@ export function storybookDevToolbar(options: StorybookToolbarOptions = {}): Astr
   const { port = 6006, host = 'localhost' } = options;
   
   return {
-    name: '@anthropic/storybook-astro/toolbar',
+    name: 'storybook-astro/toolbar',
     hooks: {
       'astro:config:setup': ({ addDevToolbarApp, command }) => {
         // Only add in dev mode

@@ -1,4 +1,4 @@
-# @anthropic/storybook-astro
+# storybook-astro
 
 Storybook framework for Astro components. Render `.astro` files directly in Storybook with full support for props, controls, and automatic source code generation.
 
@@ -14,7 +14,7 @@ Storybook framework for Astro components. Render `.astro` files directly in Stor
 ## Installation
 
 ```bash
-npm install -D @anthropic/storybook-astro storybook @storybook/addon-docs @storybook/builder-vite
+npm install -D storybook-astro storybook @storybook/addon-docs @storybook/builder-vite
 ```
 
 ## Quick Start
@@ -28,7 +28,7 @@ const config = {
   addons: ['@storybook/addon-docs'],
   
   framework: {
-    name: '@anthropic/storybook-astro',
+    name: 'storybook-astro',
     options: {},
   },
   
@@ -255,7 +255,7 @@ import Card from '../components/Card.astro';
 // .storybook/main.ts
 const config = {
   framework: {
-    name: '@anthropic/storybook-astro',
+    name: 'storybook-astro',
     options: {
       stylesheets: [
         '/src/styles/global.css',
@@ -320,6 +320,10 @@ Run `npm run build-storybook` to see detailed error messages. Common issues:
 - Missing dependencies
 - Invalid component syntax
 - Circular imports
+
+## Disclaimer
+
+This project is not affiliated with, endorsed by, or sponsored by [Astro](https://astro.build) or [Storybook](https://storybook.js.org). All trademarks belong to their respective owners.
 
 ## License
 

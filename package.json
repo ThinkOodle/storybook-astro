@@ -1,5 +1,5 @@
 {
-  "name": "@anthropic/storybook-astro",
+  "name": "storybook-astro",
   "version": "0.1.0",
   "description": "Storybook framework for Astro components - render .astro files directly in Storybook",
   "keywords": [
@@ -11,9 +11,17 @@
     "design-system"
   ],
   "license": "MIT",
+  "author": {
+    "name": "Ryan Hughes",
+    "email": "ryan@heyoodle.com"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/anthropic/storybook-astro"
+    "url": "https://github.com/thinkoodle/storybook-astro"
+  },
+  "homepage": "https://github.com/thinkoodle/storybook-astro#readme",
+  "bugs": {
+    "url": "https://github.com/thinkoodle/storybook-astro/issues"
   },
   "type": "module",
   "exports": {
@@ -82,7 +90,7 @@
     "node": ">=18.0.0"
   },
   "publishConfig": {
-    "access": "public"
+    "registry": "https://registry.npmjs.org/"
   },
   "storybook": {
     "displayName": "Astro",

@@ -34,7 +34,7 @@ export const core = {
 /**
  * Framework name for Storybook
  */
-export const frameworkName = '@anthropic/storybook-astro' as const;
+export const frameworkName = 'storybook-astro' as const;
 
 /**
  * Preview annotations - tells Storybook where to find the render functions
@@ -91,7 +91,7 @@ export async function viteFinal(
       ...existingSsr,
       noExternal: [
         ...(Array.isArray(existingSsr.noExternal) ? existingSsr.noExternal : []),
-        '@anthropic/storybook-astro',
+        'storybook-astro',
       ],
     },
   };

@@ -1,5 +1,5 @@
 /**
- * @anthropic/storybook-astro
+ * storybook-astro
  * 
  * Storybook framework for rendering Astro components directly in Storybook.
  * Uses Astro's Container API to server-side render .astro files.
@@ -7,12 +7,12 @@
  * @example
  * ```ts
  * // .storybook/main.ts
- * import type { StorybookConfig } from '@anthropic/storybook-astro';
+ * import type { StorybookConfig } from 'storybook-astro';
  * 
  * const config: StorybookConfig = {
  *   stories: ['../src/**\/*.stories.@(ts|tsx|js|jsx)'],
  *   framework: {
- *     name: '@anthropic/storybook-astro',
+ *     name: 'storybook-astro',
  *     options: {
  *       stylesheets: ['/src/styles/global.css'],
  *     },
