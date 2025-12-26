@@ -120,6 +120,33 @@ export const Secondary = {
 npm run storybook
 ```
 
+## Astro Dev Toolbar Integration
+
+Add a Storybook link to the Astro dev toolbar for quick access:
+
+```javascript
+// astro.config.mjs
+import { defineConfig } from 'astro/config';
+
+const isDev = import.meta.env?.DEV ?? process.env.NODE_ENV !== 'production';
+
+export default defineConfig({
+  integrations: [
+    // Only load in development
+    ...(isDev
+      ? [(await import('storybook-astro')).storybookDevToolbar({ port: 6006 })]
+      : []),
+  ],
+});
+```
+
+### Toolbar Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `port` | `number` | `6006` | The port Storybook is running on |
+| `host` | `string` | `localhost` | The host Storybook is running on |
+
 ## Running Alongside Astro Dev Server
 
 For the best development experience, run both Astro and Storybook together using `concurrently`:
