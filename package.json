@@ -1,6 +1,6 @@
 {
   "name": "storybook-astro",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Storybook framework for Astro components - render .astro files directly in Storybook",
   "keywords": [
     "storybook",

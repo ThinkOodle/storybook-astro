@@ -17,17 +17,17 @@ let cachedAstroViteConfig: InlineConfig | null = null;
  * Create all Vite plugins needed for Astro support in Storybook
  */
 export async function createAstroVitePlugins(options: FrameworkOptions): Promise<Plugin[]> {
-  // Set VITEST env to trick Astro into compiling components for client-side rendering
-  // This works around the SSR check in astro:build plugin that would otherwise
-  // stub out components with an error
+  // Set VITEST env for Astro <=5 compatibility. In those versions, Astro's
+  // `astro:build` transform used this signal to emit an SSR factory instead
+  // of a browser stub. Harmless on Astro 6 (ignored there).
   process.env.VITEST = 'true';
-  
+
   // Get Astro's full Vite configuration including all plugins
   const astroViteConfig = await getAstroViteConfig();
-  
+
   // Extract plugins from Astro's config
-  const astroPlugins = extractAstroPlugins(astroViteConfig);
-  
+  const astroPlugins = extractAstroPlugins(astroViteConfig).map(spoofSsrEnvironmentOnTransform);
+
   return [
     ...astroPlugins,
     astroContainerPlugin(),
@@ -35,6 +35,79 @@ export async function createAstroVitePlugins(options: FrameworkOptions): Promise
     astroScriptsPlugin(options.scripts || []),
     astroComponentMarkerPlugin(),
   ];
+}
+
+/**
+ * Astro 6 switched its SSR-vs-client compile decision to Vite's Environment API:
+ * the `astro:build` transform checks `this.environment.name === 'client'` and
+ * emits a browser stub (throwing `"Astro components cannot be used in the browser."`)
+ * when true. Storybook's Vite runs in the 'client' environment by default, so
+ * without intervention Astro hands us the stub — `$$Component` is undefined,
+ * `isAstroComponentFactory` never gets set, and our renderer can't find the
+ * component factory to pass to the Container API.
+ *
+ * Fix: for the `astro:build` plugin only, wrap its transform handler so that
+ * `this.environment.name` reads as `'ssr'`. Every other hook and every other
+ * plugin is left alone.
+ */
+function spoofSsrEnvironmentOnTransform(plugin: Plugin): Plugin {
+  if (!plugin || plugin.name !== 'astro:build' || !plugin.transform) {
+    return plugin;
+  }
+
+  const t = plugin.transform as unknown;
+
+  // Newer form: transform: { filter, handler }
+  if (t && typeof t === 'object' && 'handler' in t && typeof (t as { handler?: unknown }).handler === 'function') {
+    const original = (t as { handler: (...args: unknown[]) => unknown }).handler;
+    return {
+      ...plugin,
+      transform: {
+        ...(t as object),
+        handler(this: unknown, ...args: unknown[]) {
+          return original.apply(makeSsrContext(this), args);
+        },
+      },
+    } as Plugin;
+  }
+
+  // Older form: transform: function(source, id, options?) { ... }
+  if (typeof t === 'function') {
+    const original = t as (...args: unknown[]) => unknown;
+    return {
+      ...plugin,
+      transform(this: unknown, ...args: unknown[]) {
+        return original.apply(makeSsrContext(this), args);
+      },
+    } as Plugin;
+  }
+
+  return plugin;
+}
+
+/**
+ * Return a Proxy over Vite's transform `this` context that lies about
+ * `this.environment.name`, reporting `'ssr'` instead of whatever the real
+ * Vite environment is. Every other property / method is passed through.
+ */
+function makeSsrContext(ctx: unknown): unknown {
+  if (!ctx || typeof ctx !== 'object') return ctx;
+
+  return new Proxy(ctx as object, {
+    get(target, prop, receiver) {
+      if (prop === 'environment') {
+        const env = Reflect.get(target, 'environment', receiver);
+        if (!env || typeof env !== 'object') return env;
+        return new Proxy(env as object, {
+          get(envTarget, envProp, envReceiver) {
+            if (envProp === 'name') return 'ssr';
+            return Reflect.get(envTarget, envProp, envReceiver);
+          },
+        });
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
 }
 
 /**
@@ -239,38 +312,45 @@ function astroScriptsPlugin(scripts: string[]): Plugin {
 }
 
 /**
- * Plugin to mark Astro components with their module ID for rendering
+ * Plugin to mark compiled Astro components with `isAstroComponentFactory`
+ * and the source `moduleId`, so the Storybook renderer can identify them
+ * (`isAstroComponent()` in entry-preview.ts) and send a render request
+ * (via the `moduleId`) through the Container API.
+ *
+ * Astro 5 compiled every component to a local binding named `$$Component`
+ * plus `export { $$Component as default }`. Astro 6 switched to a
+ * filename-based local (`$$BrandTour`, `$$Palette`, …) plus
+ * `export default $$BrandTour`. Supporting both: parse the default-export
+ * line to find the actual factory identifier, fall back to `$$Component`.
  */
 function astroComponentMarkerPlugin(): Plugin {
   return {
     name: 'storybook-astro:component-marker',
     enforce: 'post',
-    
+
     transform(code, id) {
-      // Only process compiled .astro files
       if (!id.endsWith('.astro') && !id.includes('.astro?')) {
         return null;
       }
-      
-      // Look for the default export and add moduleId
-      // Astro compiles components to have a default export
-      if (code.includes('export default') || code.includes('export { $$Component as default }')) {
-        const moduleIdLine = `\n;(function() { 
-          if (typeof $$Component !== 'undefined') { 
-            $$Component.isAstroComponentFactory = true;
-            $$Component.moduleId = ${JSON.stringify(id.split('?')[0])}; 
-          }
-        })();\n`;
-        
-        return {
-          code: code + moduleIdLine,
-          map: null,
-        };
+
+      const factoryIdent = resolveDefaultExportIdentifier(code);
+      if (!factoryIdent) {
+        return null;
       }
-      
-      return null;
+
+      const moduleIdLine = `\n;(function() {
+  if (typeof ${factoryIdent} !== 'undefined') {
+    ${factoryIdent}.isAstroComponentFactory = true;
+    ${factoryIdent}.moduleId = ${JSON.stringify(id.split('?')[0])};
+  }
+})();\n`;
+
+      return {
+        code: code + moduleIdLine,
+        map: null,
+      };
     },
-    
+
     // Handle HMR for Astro components
     handleHotUpdate({ file, server }) {
       if (file.endsWith('.astro')) {
@@ -282,6 +362,24 @@ function astroComponentMarkerPlugin(): Plugin {
       }
     },
   };
+}
+
+/**
+ * Inspect compiled Astro output and return the local identifier that
+ * becomes the module's default export. Handles the three shapes we've
+ * seen across Astro 4 / 5 / 6:
+ *   - `export default $$Foo;`                   (Astro 6)
+ *   - `export { $$Component as default };`      (Astro 5 and earlier)
+ *   - `export default $$Component;`             (legacy inline)
+ */
+function resolveDefaultExportIdentifier(code: string): string | null {
+  const direct = code.match(/export\s+default\s+(\$\$\w+)\s*;?/);
+  if (direct) return direct[1];
+
+  const aliased = code.match(/export\s*\{\s*(\$\$\w+)\s+as\s+default\s*\}/);
+  if (aliased) return aliased[1];
+
+  return null;
 }
 
 /**
