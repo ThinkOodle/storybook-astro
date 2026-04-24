@@ -319,8 +319,9 @@ Note: TypeScript may show errors for `.astro` imports in story files. These are 
 
 ## Requirements
 
-- **Astro** 5.x
-- **Storybook** 10.x
+- **Astro** 4.x, 5.x, or 6.x
+- **Storybook** 8.x or 10.x
+- **Vite** 5.x, 6.x, or 7.x (Storybook's builder picks the version)
 - **Node.js** 20+
 
 ## Troubleshooting
